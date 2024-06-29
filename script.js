@@ -1,5 +1,5 @@
-const CLIENT_ID = '203341534695-0fqu5vbr36g9sgir4ouh4k5ivl0un99g.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyCt1VlOA34M-E04P-bn6uc2Qc2N0CF1fbI';
+const CLIENT_ID = '1002323162286-a85t78i8hc3uda1reus05gr5sme7e3vh.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyCWNJ1OGc1TG0i5_3zEv_HZX7eEiMBxw-o';
 const SCOPE = "https://www.googleapis.com/auth/drive.file";
 var client = null;
 var access_token = null;
