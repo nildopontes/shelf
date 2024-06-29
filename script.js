@@ -1,6 +1,7 @@
 const CLIENT_ID = '1002323162286-a85t78i8hc3uda1reus05gr5sme7e3vh.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyCWNJ1OGc1TG0i5_3zEv_HZX7eEiMBxw-o';
-const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const ROOT = '1PbRMJkw2jm7v_nr5eCYV3Xyq4CbUcjMg';
 var client = null;
 var access_token = null;
 
@@ -41,7 +42,7 @@ Envia os metadados dos arquivo para o Google Drive. Somente os metadados.
 function sendMetadata(fileName, token){
    const data = JSON.stringify({
       "name": fileName,
-      "parents": ["1X2-YwiGQPG06DkFgcCXivn6RIKAg5H5B"]
+      "parents": [ROOT]
    });
    const url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable';
    return new Promise((resolve, reject) => {
@@ -125,11 +126,10 @@ function getAbout(token){
 }
 /*
 Lista os arquivos de uma pasra do Google Drive e devolve em um JSON ordenado pelo mais recente.
-@param {String} id - o id da pasta no GDrive
 @param {Interger} amount - a quantidade de arquivos por requisição
 */
-function listInFolder(id, amount){
-   let url = `https://www.googleapis.com/drive/v3/files?key=${API_KEY}&q='${id}'+in+parents&pageSize=${amount}&orderBy=recency`;
+function listInFolder(amount){
+   let url = `https://www.googleapis.com/drive/v3/files?key=${API_KEY}&q='${ROOT}'+in+parents&pageSize=${amount}&orderBy=recency`;
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.responseType = 'json';
@@ -194,12 +194,11 @@ function trashFile(token, id){
    });
 }
 /*
-Baixa e descriptografa uma música armazenda no Google Drive
-@param {String} token - o token de acesso ao GDrive
+Baixa um arquivo público armazendo no Google Drive
 @param {String} id - o id do arquivo
 @param {String} type - o tipo de arquivo que deve ser retornado: 'arraybuffer', 'json', 'blob', 'document', 'text'
 */
-function getFile(token, id, type){
+function getFile(id, type){
    const url = `https://content.googleapis.com/drive/v2/files/{ID}?alt=media&key={API_KEY}`;
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
@@ -218,7 +217,7 @@ function getFile(token, id, type){
    });
 }
 /*
-Cria uma pasta no Goggle Drive
+Cria uma pasta na raiz do Goggle Drive
 @param {String} name - o nome da pasta 
 @param {String} token - o token de acesso à API do GDrive
 */
