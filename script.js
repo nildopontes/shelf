@@ -125,7 +125,7 @@ function getAbout(token){
    });
 }
 /*
-Lista os arquivos de uma pasra do Google Drive e devolve em um JSON ordenado pelo mais recente.
+Lista os arquivos de uma pasta do Google Drive e devolve em um JSON ordenado pelo mais recente.
 @param {Interger} amount - a quantidade de arquivos por requisição
 */
 function listInFolder(amount){
@@ -133,6 +133,30 @@ function listInFolder(amount){
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.responseType = 'json';
+      xhr.open('GET', url, true);
+      xhr.onreadystatechange = function(){
+         if(xhr.readyState == 4){
+            if([200, 206].includes(xhr.status)){
+               resolve(xhr.response);
+            }else{
+               reject(`Error: status code ${xhr.status}`);
+            }
+         }
+      }
+      xhr.send();
+   });
+}
+/*
+Lista os arquivos de uma pasta do Google Drive e devolve em um JSON ordenado pelo mais recente. Versão OAuth2
+@param {String} token - o token de acesso à API do GDrive
+@param {Interger} amount - a quantidade de arquivos por requisição
+*/
+function listIn(token, amount){
+   let url = `https://www.googleapis.com/drive/v3/files?q='${ROOT}'+in+parents&pageSize=${amount}&orderBy=recency`;
+   return new Promise((resolve, reject) => {
+      var xhr = new XMLHttpRequest();
+      xhr.responseType = 'json';
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.open('GET', url, true);
       xhr.onreadystatechange = function(){
          if(xhr.readyState == 4){
@@ -242,7 +266,7 @@ function createFolder(name, token){
    });
 }
 /*
-Altera o conteúdo do arquivo de database
+Altera o conteúdo de um arquivo do Google Drive pelo id
 @param {Uint8Array/String} data - o novo conteúdo do arquivo
 @param {String} id - o id do arquivo
 @param {String} token - o token de acesso ao GDrive
