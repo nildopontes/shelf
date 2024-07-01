@@ -36,10 +36,10 @@ function newToken(){
 }
 /*
 Envia os metadados dos arquivo para o Google Drive. Somente os metadados.
-@param {String} fileName - o nome do arquivo
 @param {String} token - o token de acesso ao GDrive
+@param {String} fileName - o nome do arquivo
 */
-function sendMetadata(fileName, token){
+function sendMetadata(token, fileName){
    const data = JSON.stringify({
       "name": fileName,
       "parents": [ROOT]
@@ -54,18 +54,9 @@ function sendMetadata(fileName, token){
       xhr.onreadystatechange = function() {
          if(xhr.readyState == 4){
             if([200, 206].includes(xhr.status)){
-               var headers = xhr.getAllResponseHeaders();
-               const arr = headers.trim().split(/[\r\n]+/);
-               const headerMap = {};
-               arr.forEach((line) => {
-                  const parts = line.split(": ");
-                  const header = parts.shift();
-                  const value = parts.join(": ");
-                  headerMap[header] = value;
-               });
-               resolve(headerMap['location']);
+               resolve(xhr.getResponseHeader('Location'));
             }else{
-               reject(xhr.status);
+               reject(`Error: status code ${xhr.status}.`);
             }
          }
       }
@@ -74,11 +65,11 @@ function sendMetadata(fileName, token){
 }
 /*
 Envia os dados de um arquivo para o GDrive, uma vez que os metadados já foram enviados com a função sendMetadata()
+@param {String} token - o token de acesso ao GDrive
 @param {Uint8Array/String} data - o conteúdo do arquivo
 @param {String} pathResumable - o path para o arquivo obtido na função sendMetadata()
-@param {String} token - o token de acesso ao GDrive
 */
-function sendFile(data, pathResumable, token){
+function sendFile(token, data, pathResumable){
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.responseType = 'json';
@@ -149,10 +140,10 @@ function listInFolder(amount){
 /*
 Lista as permissões de um arquivo
 @param {String} token - o token de acesso à API do GDrive
-@param {Interger} id - o ID do arquivo
+@param {Interger} fileId - o ID do arquivo
 */
-function listPermissions(token, id){
-   const url = `https://www.googleapis.com/drive/v3/files/${id}/permissions`;
+function listPermissions(token, fileId){
+   const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.responseType = 'json';
@@ -161,7 +152,7 @@ function listPermissions(token, id){
       xhr.onreadystatechange = function(){
          if(xhr.readyState == 4){
             if([200, 206].includes(xhr.status)){
-               resolve(xhr.response);
+               resolve(xhr.response.permissions);
             }else{
                reject(`Error: status code ${xhr.status}`);
             }
@@ -171,16 +162,41 @@ function listPermissions(token, id){
    });
 }
 /*
-Compartilha um arquivo do Google Drive para ficar público para qualquer pessoa com o link
+Remove uma permissões de um arquivo
 @param {String} token - o token de acesso à API do GDrive
-@param {Interger} id - o ID do arquivo
+@param {Interger} fileId - o ID do arquivo
+@param {Interger} permissionId - o ID da permissão
 */
-function publishFile(token, id){
+function removePermission(token, fileId, permissionId){
+   const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions/${permissionId}`;
+   return new Promise((resolve, reject) => {
+      var xhr = new XMLHttpRequest();
+      xhr.responseType = 'json';
+      xhr.open('DELETE', url, true);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.onreadystatechange = function(){
+         if(xhr.readyState == 4){
+            if([200, 206].includes(xhr.status)){
+               resolve(true);
+            }else{
+               reject(`Error: status code ${xhr.status}`);
+            }
+         }
+      }
+      xhr.send();
+   });
+}
+/*
+Torna um arquivo do Google Drive público para qualquer pessoa com o link
+@param {String} token - o token de acesso à API do GDrive
+@param {Interger} fileId - o ID do arquivo
+*/
+function publishFile(token, fileId){
    let permission = JSON.stringify({
       "type": "anyone",
       "role": "reader",
    });
-   const url = `https://www.googleapis.com/drive/v3/files/${id}/permissions`;
+   const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.open('POST', url, true);
@@ -188,7 +204,7 @@ function publishFile(token, id){
       xhr.onreadystatechange = function(){
          if(xhr.readyState == 4){
             if([200, 206].includes(xhr.status)){
-               resolve(`https://drive.google.com/uc?export=download&id=${id}`);
+               resolve(`https://drive.google.com/uc?export=download&id=${fileId}`);
             }else{
                reject(`Error: status code ${xhr.status}`);
             }
@@ -200,10 +216,10 @@ function publishFile(token, id){
 /*
 Deleta um arquivo armazendo no Google Drive
 @param {String} token - o token de acesso ao GDrive
-@param {String} id - o id do arquivo
+@param {String} fileId - o ID do arquivo
 */
-function trashFile(token, id){
-   const url = `https://www.googleapis.com/drive/v2/files/${id}`;
+function trashFile(token, fileId){
+   const url = `https://www.googleapis.com/drive/v2/files/${fileId}`;
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.responseType = 'arraybuffer';
@@ -211,7 +227,7 @@ function trashFile(token, id){
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.onreadystatechange = function() {
          if(xhr.readyState == 4){
-            ([200, 206, 204].includes(xhr.status)) ? resolve('Ok') : reject(`Error: status code ${xhr.status}`);
+            ([200, 206, 204].includes(xhr.status)) ? resolve(true) : reject(`Error: status code ${xhr.status}`);
          }
       }
       xhr.send();
@@ -219,11 +235,11 @@ function trashFile(token, id){
 }
 /*
 Baixa um arquivo público armazendo no Google Drive
-@param {String} id - o id do arquivo
+@param {String} fileId - o ID do arquivo
 @param {String} type - o tipo de arquivo que deve ser retornado: 'arraybuffer', 'json', 'blob', 'document', 'text'
 */
-function getFile(id, type){
-   const url = `https://content.googleapis.com/drive/v2/files/{ID}?alt=media&key={API_KEY}`;
+function getFile(fileId, type){
+   const url = `https://content.googleapis.com/drive/v2/files/{fileId}?alt=media&key={API_KEY}`;
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.responseType = type;
@@ -242,10 +258,10 @@ function getFile(id, type){
 }
 /*
 Cria uma pasta na raiz do Goggle Drive
-@param {String} name - o nome da pasta 
 @param {String} token - o token de acesso à API do GDrive
+@param {String} name - o nome da pasta
 */
-function createFolder(name, token){
+function createFolder(token, name){
    const data = JSON.stringify({
       "name": name,
       "mimeType": "application/vnd.google-apps.folder",
@@ -267,13 +283,13 @@ function createFolder(name, token){
 }
 /*
 Altera o conteúdo de um arquivo do Google Drive pelo id
-@param {Uint8Array/String} data - o novo conteúdo do arquivo
-@param {String} id - o id do arquivo
 @param {String} token - o token de acesso ao GDrive
+@param {Uint8Array/String} data - o novo conteúdo do arquivo
+@param {String} fileId - o ID do arquivo
 */
-function updateFile(data, id, token){
+function updateFile(token, data, fileId){
    if(data.length == 0) return;
-   var url = `https://www.googleapis.com/upload/drive/v3/files/${id}`;
+   var url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}`;
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.open('PATCH', url, true);
