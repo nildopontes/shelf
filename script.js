@@ -156,8 +156,8 @@ function listIn(token, amount){
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.responseType = 'json';
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.open('GET', url, true);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.onreadystatechange = function(){
          if(xhr.readyState == 4){
             if([200, 206].includes(xhr.status)){
