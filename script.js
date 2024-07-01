@@ -147,12 +147,12 @@ function listInFolder(amount){
    });
 }
 /*
-Lista os arquivos de uma pasta do Google Drive e devolve em um JSON ordenado pelo mais recente. Versão OAuth2
+Lista as permissões de um arquivo
 @param {String} token - o token de acesso à API do GDrive
-@param {Interger} amount - a quantidade de arquivos por requisição
+@param {Interger} id - o ID do arquivo
 */
-function listIn(token, amount){
-   let url = `https://www.googleapis.com/drive/v3/files?q='${ROOT}'+in+parents&pageSize=${amount}&orderBy=recency`;
+function listPermissions(token, id){
+   const url = `https://www.googleapis.com/drive/v3/files/${id}/permissions`;
    return new Promise((resolve, reject) => {
       var xhr = new XMLHttpRequest();
       xhr.responseType = 'json';
